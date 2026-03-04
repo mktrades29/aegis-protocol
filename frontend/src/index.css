@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base ─────────────────────────────────────────────────────────── */
+:root {
+  --neon-green: #22c55e;
+  --neon-orange: #f97316;
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: #09090b;
+  overflow-x: hidden;
+}
+
+/* ─── Dynamic Animated Background ──────────────────────────────────── */
+.animated-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(34, 197, 94, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 60%, rgba(249, 115, 22, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 60% at 50% 100%, rgba(34, 197, 94, 0.03) 0%, transparent 50%);
+  background-size: 200% 200%;
+  animation: bg-drift 20s ease-in-out infinite;
+}
+
+@keyframes bg-drift {
+  0%, 100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+  25% { background-position: 100% 0%, 0% 50%, 0% 100%; }
+  50% { background-position: 50% 100%, 50% 0%, 100% 0%; }
+  75% { background-position: 0% 50%, 100% 100%, 50% 50%; }
+}
+
+/* ─── Grid Overlay (subtle HUD lines) ──────────────────────────────── */
+.grid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+/* ─── Glassmorphism Card ───────────────────────────────────────────── */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+
+.glass-card-strong {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+}
+
+/* ─── Neon Button Glow ─────────────────────────────────────────────── */
+.btn-neon {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-neon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.6), inset 0 0 30px rgba(34, 197, 94, 0.1);
+}
+
+.btn-neon:hover::before {
+  opacity: 1;
+}
+
+/* ─── Monospace for data ───────────────────────────────────────────── */
+.font-mono-data {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ─── Scrollbar ────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ─── Circular Progress Ring ───────────────────────────────────────── */
+.progress-ring-circle {
+  transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+/* ─── Neon Text Glow ───────────────────────────────────────────────── */
+.text-glow-green {
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.2);
+}
+
+.text-glow-orange {
+  text-shadow: 0 0 10px rgba(249, 115, 22, 0.5), 0 0 40px rgba(249, 115, 22, 0.2);
+}
