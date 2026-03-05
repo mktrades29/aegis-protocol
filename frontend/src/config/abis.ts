@@ -113,6 +113,15 @@ export const AEGIS_VESTING_ABI: BitcoinInterfaceAbi = [
 ];
 
 export const AEGIS_VAULT_ABI: BitcoinInterfaceAbi = [
+  // ── Write Methods ──────────────────────────────────────────────
+  {
+    name: 'setAuthorizedDepositor',
+    constant: false,
+    inputs: [{ name: 'newDepositor', type: ABIDataTypes.ADDRESS }],
+    outputs: [{ name: 'success', type: ABIDataTypes.BOOL }],
+    type: BitcoinAbiTypes.Function,
+  },
+  // ── Read Methods ───────────────────────────────────────────────
   {
     name: 'getAccumulatedFees',
     constant: true,
