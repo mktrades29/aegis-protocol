@@ -1,0 +1,20 @@
+{
+  "name": "aegis-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:vesting": "asc src/vesting/index.ts --target vesting --measure --uncheckedBehavior never",
+    "build:vault": "asc src/vault/index.ts --target vault --measure --uncheckedBehavior never",
+    "build": "npm run build:vault && npm run build:vesting"
+  },
+  "dependencies": {
+    "@btc-vision/btc-runtime": "^1.11.0-rc.9",
+    "@btc-vision/bitcoin": "^6.5.6"
+  },
+  "devDependencies": {
+    "@btc-vision/assemblyscript": "^0.29.2",
+    "@btc-vision/opnet-transform": "latest",
+    "assemblyscript": "^0.27.34"
+  }
+}
