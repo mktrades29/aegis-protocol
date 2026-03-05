@@ -40,22 +40,17 @@ export default function AdminSetup() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function sendAdminTx(contractAddr: string, abi: any, methodName: string, paramAddr: string): Promise<void> {
-    // Stage 1: Resolve address (uses pre-cached pubkeys, no RPC needed)
-    let resolvedAddress: Address;
-    try {
-      resolvedAddress = resolveContractAddress(paramAddr);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`[Address resolve] ${msg}`);
-    }
+    // Resolve both addresses locally (no RPC calls)
+    const contractAddress = resolveContractAddress(contractAddr);
+    const paramAddress = resolveContractAddress(paramAddr);
 
-    // Stage 2: Simulate contract call (use patched provider for browser compatibility)
+    // Create contract with Address objects (not strings) to skip RPC resolution.
+    // Pass undefined as sender — the regtest node's btc_publicKeyInfo is unreliable (502).
     let result;
     try {
       const rpc = getProvider();
-      patchProviderForBrowser(rpc);
-      const contract = getContract(contractAddr, abi, rpc, network as Network, address as any);
-      result = await (contract as any)[methodName](resolvedAddress);
+      const contract = getContract(contractAddress as never, abi, rpc, network as Network, undefined as never);
+      result = await (contract as any)[methodName](paramAddress);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new Error(`[Contract call] ${msg}`);
@@ -65,7 +60,7 @@ export default function AdminSetup() {
       throw new Error(`[Revert] ${result.revert}`);
     }
 
-    // Stage 3: Send transaction
+    // Send transaction via wallet
     try {
       const signerInstance = signer as { p2tr: string };
       await result.sendTransaction({
