@@ -1,32 +1,12 @@
 import { useState } from 'react';
 import { Settings, Link, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { getContract, type AbstractRpcProvider } from 'opnet';
-import { Address } from '@btc-vision/transaction';
 import type { Network } from '@btc-vision/bitcoin';
 import { useAegisWallet } from '../context/WalletContext';
-import { config } from '../config/env';
-import { getProvider } from '../services/provider';
+import { config, isConfigured } from '../config/env';
 import { AEGIS_VESTING_ABI, AEGIS_VAULT_ABI } from '../config/abis';
 
 type StepStatus = 'idle' | 'loading' | 'success' | 'error';
-
-/**
- * Pre-resolved tweaked public keys for deployed contract addresses.
- * The OP_NET regtest RPC blocks browser fetch() requests, so we cache
- * the keys locally. These never change for deployed contracts.
- */
-const CONTRACT_PUBKEYS: Record<string, string> = {
-  [config.aegisVestingAddress]: '03db8fe8ca9c61261381c2eb8b751b9f8dcabd3b6e5accbd0d0cc44cba2fd748',
-  [config.aegisVaultAddress]: '9ca77487a618022b57ee61b559cb52a8f52be727f989e2f83d9086fd86160215',
-};
-
-function resolveContractAddress(p2opAddr: string): Address {
-  const pubkey = CONTRACT_PUBKEYS[p2opAddr];
-  if (!pubkey) {
-    throw new Error(`Unknown contract address: ${p2opAddr}`);
-  }
-  return Address.fromString(pubkey);
-}
 
 export default function AdminSetup() {
   const { isConnected, address, provider, signer, network } = useAegisWallet();
@@ -36,49 +16,28 @@ export default function AdminSetup() {
   const [step1Error, setStep1Error] = useState<string | null>(null);
   const [step2Error, setStep2Error] = useState<string | null>(null);
 
-  if (!isConnected) return null;
+  if (!isConnected || !isConfigured()) return null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function sendAdminTx(contractAddr: string, abi: any, methodName: string, paramAddr: string): Promise<void> {
-    // Resolve addresses locally from hardcoded pubkeys (no RPC calls)
-    const contractAddressObj = resolveContractAddress(contractAddr);
-    const paramAddressObj = resolveContractAddress(paramAddr);
+    const rpc = provider as AbstractRpcProvider;
+    const net = network as Network;
 
-    // Use the wallet's provider WITHOUT patching — it likely communicates through
-    // the OP_WALLET extension (not HTTP fetch), so patching _send would break it.
-    let result;
-    try {
-      const rpc = provider as AbstractRpcProvider;
-      // Pass contract address as STRING so provider.call() serializes it correctly,
-      // but pre-populate _rlAddress cache so contractAddress getter skips btc_publicKeyInfo RPC.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const contract = getContract(contractAddr, abi, rpc, network as Network, undefined as any) as any;
-      contract._rlAddress = Promise.resolve(contractAddressObj);
-      result = await contract[methodName](paramAddressObj);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`[Contract call] ${msg}`);
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contract = getContract(contractAddr, abi, rpc, net, address as any) as any;
+    const result = await contract[methodName](paramAddr);
 
     if (result.revert) {
       throw new Error(`[Revert] ${result.revert}`);
     }
 
-    // Send transaction via wallet
-    try {
-      const signerInstance = signer as { p2tr: string };
-      await result.sendTransaction({
-        signer: signer as never,
-        mldsaSigner: null,
-        refundTo: signerInstance.p2tr,
-        maximumAllowedSatToSpend: 100_000n,
-        feeRate: 10,
-        network: network as Network,
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`[Send TX] ${msg}`);
-    }
+    await result.sendTransaction({
+      signer: null,
+      mldsaSigner: null,
+      maximumAllowedSatToSpend: 100_000n,
+      feeRate: 10,
+      network: net,
+    });
   }
 
   async function linkVaultToVesting() {

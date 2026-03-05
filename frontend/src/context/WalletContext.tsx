@@ -14,6 +14,7 @@ import { MOCK_LOCKS, MOCK_STATS } from '../mock/data';
 import { isConfigured } from '../config/env';
 import { getProvider, getNetwork } from '../services/provider';
 import { fetchAllLocks, fetchProtocolStats } from '../services/vestingService';
+import { fetchAccumulatedFees } from '../services/vaultService';
 import type { OnChainLockInfo } from '../types/contracts';
 
 interface AegisWalletContextType {
@@ -87,12 +88,23 @@ export function AegisWalletProvider({ children }: { children: ReactNode }) {
         fetchProtocolStats(provider, network),
       ]);
 
+      // Fetch vault fees for each unique token
+      const uniqueTokens = [...new Set(onChainLocks.map((l) => l.tokenAddress))];
+      let totalFees = 0n;
+      for (const token of uniqueTokens) {
+        try {
+          totalFees += await fetchAccumulatedFees(token, provider, network);
+        } catch {
+          // Vault may not be linked yet — skip
+        }
+      }
+
       setLocks(onChainLocks.map(onChainToVestingLock));
       setStats({
         totalValueLocked: onChainStats.totalValueLocked,
         totalLocks: onChainStats.totalLocks,
-        totalTokensTracked: new Set(onChainLocks.map((l) => l.tokenAddress)).size,
-        vaultFeesCollected: 0, // Could fetch from vault if needed
+        totalTokensTracked: uniqueTokens.length,
+        vaultFeesCollected: Number(totalFees),
       });
       setIsLiveData(true);
     } catch (err) {

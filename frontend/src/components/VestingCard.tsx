@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, ArrowDown, ArrowUp, Coins, Tag, User, Calendar, Download, Check } from 'lucide-react';
 import { VestingLock, calculateVestingProgress } from '../mock/data';
+import { useAegisWallet } from '../context/WalletContext';
+import { claimVestedTokens } from '../services/vestingService';
+import type { AbstractRpcProvider } from 'opnet';
+import type { Network } from '@btc-vision/bitcoin';
 import ProgressRing from './ProgressRing';
 import NeonProgressBar from './NeonProgressBar';
 
@@ -58,13 +62,47 @@ export default function VestingCard({ lock, index }: VestingCardProps) {
   const vestingEndDate = lock.startTime + lock.duration;
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const { address, provider, network, isLiveData, refreshData } = useAegisWallet();
 
   async function handleClaim() {
     setClaiming(true);
-    // Simulate wallet interaction + on-chain claim
-    await new Promise(r => setTimeout(r, 2000));
-    setClaiming(false);
-    setClaimed(true);
+    setClaimError(null);
+
+    try {
+      if (address && provider && isLiveData) {
+        const simulation = await claimVestedTokens(
+          lock.lockId,
+          address,
+          provider as AbstractRpcProvider,
+          network as Network,
+        );
+
+        if (simulation.revert) {
+          throw new Error(`Claim reverted: ${simulation.revert}`);
+        }
+
+        await simulation.sendTransaction({
+          signer: null,
+          mldsaSigner: null,
+          maximumAllowedSatToSpend: 100_000n,
+          feeRate: 10,
+          network: network as Network,
+        });
+
+        refreshData();
+      } else {
+        // Demo fallback
+        await new Promise(r => setTimeout(r, 2000));
+      }
+
+      setClaimed(true);
+    } catch (err) {
+      console.error('[Aegis] Claim failed:', err);
+      setClaimError(err instanceof Error ? err.message : 'Claim failed');
+    } finally {
+      setClaiming(false);
+    }
   }
 
   return (
@@ -247,6 +285,13 @@ export default function VestingCard({ lock, index }: VestingCardProps) {
             </>
           )}
         </motion.button>
+      )}
+
+      {/* ── Claim Error ──────────────────────────────────────────── */}
+      {claimError && (
+        <p className="mt-2 text-[10px] font-mono-data text-red-400 truncate" title={claimError}>
+          {claimError}
+        </p>
       )}
 
       {/* ── Footer: Addresses ───────────────────────────────────── */}

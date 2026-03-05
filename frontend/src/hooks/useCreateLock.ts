@@ -54,11 +54,9 @@ export function useCreateLock(): UseCreateLockReturn {
               throw new Error(`Transaction would revert: ${simulation.revert}`);
             }
 
-            const signerInstance = signer as { p2tr: string };
             const receipt = await simulation.sendTransaction({
-              signer: signer as never,
+              signer: null,
               mldsaSigner: null,
-              refundTo: signerInstance.p2tr,
               maximumAllowedSatToSpend: 100_000n,
               feeRate: 10,
               network: network as Network,
