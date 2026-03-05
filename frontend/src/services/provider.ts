@@ -22,8 +22,8 @@ const networkMap: Record<string, typeof networks.regtest> = {
 export function patchProviderForBrowser(provider: any): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   provider._send = async (payload: any) => {
-    // Use provider's URL if set, otherwise fall back to testnet URL
-    const url: string = provider.url || 'https://testnet.opnet.org/api/v1/json-rpc';
+    // Use provider's URL if set, otherwise fall back to same-origin proxy
+    const url: string = provider.url || '/api/v1/json-rpc';
     const method = payload?.method ?? 'unknown';
     const controller = new AbortController();
     const timeout = provider.timeout ?? 20000;

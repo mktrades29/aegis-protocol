@@ -7,7 +7,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api/v1/json-rpc': {
-        target: 'https://testnet.opnet.org',
+        target: 'https://regtest.opnet.org',
         changeOrigin: true,
       },
     },
