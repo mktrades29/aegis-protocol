@@ -10,45 +10,21 @@ import { AEGIS_VESTING_ABI, AEGIS_VAULT_ABI } from '../config/abis';
 type StepStatus = 'idle' | 'loading' | 'success' | 'error';
 
 /**
- * Resolve a P2OP address to an Address object via direct fetch to the RPC.
- * Bypasses the opnet SDK's fetch infrastructure which breaks in browsers.
+ * Pre-resolved tweaked public keys for deployed contract addresses.
+ * The OP_NET regtest RPC blocks browser fetch() requests, so we cache
+ * the keys locally. These never change for deployed contracts.
  */
-async function resolveP2OPAddress(p2opAddr: string): Promise<Address> {
-  const rpcUrl = config.rpcUrl.endsWith('/') ? config.rpcUrl.slice(0, -1) : config.rpcUrl;
-  const url = rpcUrl.includes('api/v1/json-rpc') ? rpcUrl : `${rpcUrl}/api/v1/json-rpc`;
+const CONTRACT_PUBKEYS: Record<string, string> = {
+  [config.aegisVestingAddress]: '03db8fe8ca9c61261381c2eb8b751b9f8dcabd3b6e5accbd0d0cc44cba2fd748',
+  [config.aegisVaultAddress]: '9ca77487a618022b57ee61b559cb52a8f52be727f989e2f83d9086fd86160215',
+};
 
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      method: 'btc_publicKeyInfo',
-      params: [[p2opAddr]],
-      id: 1,
-    }),
-  });
-
-  if (!resp.ok) {
-    throw new Error(`RPC error: ${resp.status} ${resp.statusText}`);
-  }
-
-  const data = await resp.json();
-  if (data.error) {
-    throw new Error(data.error.message || 'RPC error');
-  }
-
-  const info = data.result?.[p2opAddr];
-  if (!info || info.error) {
-    throw new Error(`Address not found on network: ${p2opAddr}`);
-  }
-
-  // Use tweakedPubkey for contract addresses (no MLDSA key for contracts)
-  const pubkey = info.mldsaHashedPublicKey ?? info.tweakedPubkey;
+function resolveContractAddress(p2opAddr: string): Address {
+  const pubkey = CONTRACT_PUBKEYS[p2opAddr];
   if (!pubkey) {
-    throw new Error(`No public key returned for: ${p2opAddr}`);
+    throw new Error(`Unknown contract address: ${p2opAddr}`);
   }
-
-  return Address.fromString(pubkey, info.tweakedPubkey);
+  return Address.fromString(pubkey);
 }
 
 export default function AdminSetup() {
@@ -63,13 +39,13 @@ export default function AdminSetup() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function sendAdminTx(contractAddr: string, abi: any, methodName: string, paramAddr: string): Promise<void> {
-    // Stage 1: Resolve address
+    // Stage 1: Resolve address (uses pre-cached pubkeys, no RPC needed)
     let resolvedAddress: Address;
     try {
-      resolvedAddress = await resolveP2OPAddress(paramAddr);
+      resolvedAddress = resolveContractAddress(paramAddr);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`[Address resolve] ${msg} | URL: ${config.rpcUrl}`);
+      throw new Error(`[Address resolve] ${msg}`);
     }
 
     // Stage 2: Simulate contract call
