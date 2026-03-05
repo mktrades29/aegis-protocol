@@ -5,6 +5,7 @@ import { Address } from '@btc-vision/transaction';
 import type { Network } from '@btc-vision/bitcoin';
 import { useAegisWallet } from '../context/WalletContext';
 import { config } from '../config/env';
+import { patchProviderForBrowser, getProvider } from '../services/provider';
 import { AEGIS_VESTING_ABI, AEGIS_VAULT_ABI } from '../config/abis';
 
 type StepStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -48,10 +49,11 @@ export default function AdminSetup() {
       throw new Error(`[Address resolve] ${msg}`);
     }
 
-    // Stage 2: Simulate contract call
+    // Stage 2: Simulate contract call (use patched provider for browser compatibility)
     let result;
     try {
-      const rpc = provider as AbstractRpcProvider;
+      const rpc = getProvider();
+      patchProviderForBrowser(rpc);
       const contract = getContract(contractAddr, abi, rpc, network as Network, address as any);
       result = await (contract as any)[methodName](resolvedAddress);
     } catch (err) {
