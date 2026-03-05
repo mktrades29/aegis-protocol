@@ -63,27 +63,45 @@ export default function AdminSetup() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function sendAdminTx(contractAddr: string, abi: any, methodName: string, paramAddr: string): Promise<void> {
-    const rpc = provider as AbstractRpcProvider;
-    const contract = getContract(contractAddr, abi, rpc, network as Network, address as any);
-
-    // Resolve P2OP bech32m string to Address object via direct fetch (bypasses SDK fetcher)
-    const resolvedAddress = await resolveP2OPAddress(paramAddr);
-
-    const result = await (contract as any)[methodName](resolvedAddress);
-
-    if (result.revert) {
-      throw new Error(result.revert);
+    // Stage 1: Resolve address
+    let resolvedAddress: Address;
+    try {
+      resolvedAddress = await resolveP2OPAddress(paramAddr);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`[Address resolve] ${msg} | URL: ${config.rpcUrl}`);
     }
 
-    const signerInstance = signer as { p2tr: string };
-    await result.sendTransaction({
-      signer: signer as never,
-      mldsaSigner: null,
-      refundTo: signerInstance.p2tr,
-      maximumAllowedSatToSpend: 100_000n,
-      feeRate: 10,
-      network: network as Network,
-    });
+    // Stage 2: Simulate contract call
+    let result;
+    try {
+      const rpc = provider as AbstractRpcProvider;
+      const contract = getContract(contractAddr, abi, rpc, network as Network, address as any);
+      result = await (contract as any)[methodName](resolvedAddress);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`[Contract call] ${msg}`);
+    }
+
+    if (result.revert) {
+      throw new Error(`[Revert] ${result.revert}`);
+    }
+
+    // Stage 3: Send transaction
+    try {
+      const signerInstance = signer as { p2tr: string };
+      await result.sendTransaction({
+        signer: signer as never,
+        mldsaSigner: null,
+        refundTo: signerInstance.p2tr,
+        maximumAllowedSatToSpend: 100_000n,
+        feeRate: 10,
+        network: network as Network,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`[Send TX] ${msg}`);
+    }
   }
 
   async function linkVaultToVesting() {
