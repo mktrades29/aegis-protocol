@@ -4,6 +4,7 @@ import { getContract, type AbstractRpcProvider } from 'opnet';
 import type { Network } from '@btc-vision/bitcoin';
 import { useAegisWallet } from '../context/WalletContext';
 import { config } from '../config/env';
+import { getProvider } from '../services/provider';
 import { AEGIS_VESTING_ABI, AEGIS_VAULT_ABI } from '../config/abis';
 
 type StepStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -23,8 +24,10 @@ export default function AdminSetup() {
     const rpc = provider as AbstractRpcProvider;
     const contract = getContract(contractAddr, abi, rpc, network as Network, address as any);
 
-    // Resolve P2OP bech32m string to an Address object (the SDK requires Address, not string)
-    const resolvedAddress = await rpc.getPublicKeyInfo(paramAddr, true);
+    // Resolve P2OP bech32m string to an Address object (the SDK requires Address, not string).
+    // Use the singleton JSONRpcProvider which has reliable RPC connectivity.
+    const rpcProvider = getProvider();
+    const resolvedAddress = await rpcProvider.getPublicKeyInfo(paramAddr, true);
     if (!resolvedAddress) {
       throw new Error(`Could not resolve address: ${paramAddr}`);
     }
