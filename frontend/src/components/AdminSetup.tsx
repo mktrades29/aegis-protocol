@@ -40,17 +40,19 @@ export default function AdminSetup() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function sendAdminTx(contractAddr: string, abi: any, methodName: string, paramAddr: string): Promise<void> {
-    // Resolve both addresses locally (no RPC calls)
-    const contractAddress = resolveContractAddress(contractAddr);
-    const paramAddress = resolveContractAddress(paramAddr);
+    // Resolve addresses locally from hardcoded pubkeys (no RPC calls)
+    const contractAddressObj = resolveContractAddress(contractAddr);
+    const paramAddressObj = resolveContractAddress(paramAddr);
 
-    // Create contract with Address objects (not strings) to skip RPC resolution.
-    // Pass undefined as sender — the regtest node's btc_publicKeyInfo is unreliable (502).
+    // Pass contract address as STRING so provider.call() serializes it correctly,
+    // but pre-populate _rlAddress cache so contractAddress getter skips the RPC.
     let result;
     try {
       const rpc = getProvider();
-      const contract = getContract(contractAddress as never, abi, rpc, network as Network, undefined as never);
-      result = await (contract as any)[methodName](paramAddress);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contract = getContract(contractAddr, abi, rpc, network as Network, undefined as any) as any;
+      contract._rlAddress = Promise.resolve(contractAddressObj);
+      result = await contract[methodName](paramAddressObj);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new Error(`[Contract call] ${msg}`);
