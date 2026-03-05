@@ -5,7 +5,6 @@ import Header from './components/Header';
 import StatsBar from './components/StatsBar';
 import VestingExplorer from './components/VestingExplorer';
 import VaultCreator from './components/VaultCreator';
-import AdminSetup from './components/AdminSetup';
 
 type Tab = 'explorer' | 'launchpad';
 
@@ -82,11 +81,6 @@ export default function App() {
               {activeTab === 'explorer' ? <VestingExplorer /> : <VaultCreator />}
             </motion.div>
           </AnimatePresence>
-
-          {/* Admin Setup (only shows when wallet connected) */}
-          <motion.div variants={fadeSlideUp}>
-            <AdminSetup />
-          </motion.div>
 
           {/* Footer */}
           <motion.div variants={fadeSlideUp}>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, Filter, AlertTriangle } from 'lucide-react';
+import { Search, SlidersHorizontal, Filter } from 'lucide-react';
 import { useAegisWallet } from '../context/WalletContext';
 import VestingCard from './VestingCard';
 
@@ -13,7 +13,7 @@ type FilterMode = 'all' | 'active' | 'completed';
  * filter toggles, and renders VestingCard for each result.
  */
 export default function VestingExplorer() {
-  const { locks, isLoadingData, dataError } = useAegisWallet();
+  const { locks, isLoadingData } = useAegisWallet();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterMode>('all');
 
@@ -40,19 +40,6 @@ export default function VestingExplorer() {
 
   return (
     <div>
-      {/* ── Error Banner ─────────────────────────────────────────── */}
-      {dataError && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-orange-500/5 border border-orange-500/10"
-        >
-          <AlertTriangle size={14} className="text-orange-400 shrink-0" />
-          <p className="text-xs font-mono-data text-orange-400">
-            {dataError} — Showing demo data
-          </p>
-        </motion.div>
-      )}
 
       {/* ── Search Bar ──────────────────────────────────────────── */}
       <motion.div

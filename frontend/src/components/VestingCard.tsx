@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, ArrowDown, ArrowUp, Coins, Tag, User, Calendar } from 'lucide-react';
+import { Clock, ArrowDown, ArrowUp, Coins, Tag, User, Calendar, Download, Check } from 'lucide-react';
 import { VestingLock, calculateVestingProgress } from '../mock/data';
 import ProgressRing from './ProgressRing';
 import NeonProgressBar from './NeonProgressBar';
@@ -55,6 +56,16 @@ function formatDate(ts: number): string {
 export default function VestingCard({ lock, index }: VestingCardProps) {
   const progress = calculateVestingProgress(lock);
   const vestingEndDate = lock.startTime + lock.duration;
+  const [claiming, setClaiming] = useState(false);
+  const [claimed, setClaimed] = useState(false);
+
+  async function handleClaim() {
+    setClaiming(true);
+    // Simulate wallet interaction + on-chain claim
+    await new Promise(r => setTimeout(r, 2000));
+    setClaiming(false);
+    setClaimed(true);
+  }
 
   return (
     <motion.div
@@ -197,6 +208,46 @@ export default function VestingCard({ lock, index }: VestingCardProps) {
           </motion.p>
         </div>
       </div>
+
+      {/* ── Claim Button ─────────────────────────────────────────── */}
+      {lock.isActive && progress.claimableAmount > 0 && (
+        <motion.button
+          onClick={handleClaim}
+          disabled={claiming || claimed}
+          className={`
+            w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold
+            transition-all duration-300
+            ${claimed
+              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+              : claiming
+                ? 'bg-white/5 text-zinc-400 border border-white/10 cursor-wait'
+                : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer'
+            }
+          `}
+          whileTap={!claiming && !claimed ? { scale: 0.98 } : {}}
+        >
+          {claiming ? (
+            <>
+              <motion.div
+                className="w-3.5 h-3.5 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              />
+              Claiming...
+            </>
+          ) : claimed ? (
+            <>
+              <Check size={14} />
+              Claimed {formatNumber(progress.claimableAmount)} tokens
+            </>
+          ) : (
+            <>
+              <Download size={14} />
+              Claim {formatNumber(progress.claimableAmount)} tokens
+            </>
+          )}
+        </motion.button>
+      )}
 
       {/* ── Footer: Addresses ───────────────────────────────────── */}
       <div className="mt-4 pt-3 border-t border-white/[0.04] flex items-center justify-between">

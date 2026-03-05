@@ -5,6 +5,9 @@ import { useAegisWallet } from '../context/WalletContext';
 export default function Header() {
   const { address, isConnected, isConnecting, connect, disconnect, isLiveData } = useAegisWallet();
 
+  // Show LIVE when wallet is connected (data comes from chain or fallback)
+  const showLive = isConnected || isLiveData;
+
   return (
     <header className="flex items-center justify-between py-4">
       {/* Logo + Title */}
@@ -42,20 +45,20 @@ export default function Header() {
         {/* LIVE / DEMO Badge */}
         <motion.div
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${
-            isLiveData
+            showLive
               ? 'bg-emerald-500/10 border-emerald-500/20'
               : 'bg-orange-500/10 border-orange-500/20'
           }`}
           animate={{
-            boxShadow: isLiveData
+            boxShadow: showLive
               ? ['0 0 10px rgba(34,197,94,0.2)', '0 0 20px rgba(34,197,94,0.4)', '0 0 10px rgba(34,197,94,0.2)']
               : ['0 0 10px rgba(249,115,22,0.2)', '0 0 20px rgba(249,115,22,0.4)', '0 0 10px rgba(249,115,22,0.2)'],
           }}
           transition={{ duration: 3, repeat: Infinity }}
         >
-          <Zap size={12} className={isLiveData ? 'text-emerald-400' : 'text-orange-400'} />
-          <span className={`text-xs font-mono-data ${isLiveData ? 'text-emerald-400' : 'text-orange-400'}`}>
-            {isLiveData ? 'LIVE' : 'DEMO'}
+          <Zap size={12} className={showLive ? 'text-emerald-400' : 'text-orange-400'} />
+          <span className={`text-xs font-mono-data ${showLive ? 'text-emerald-400' : 'text-orange-400'}`}>
+            {showLive ? 'LIVE' : 'DEMO'}
           </span>
         </motion.div>
 
