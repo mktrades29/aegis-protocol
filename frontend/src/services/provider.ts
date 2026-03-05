@@ -15,14 +15,44 @@ const networkMap: Record<string, typeof networks.regtest> = {
 };
 
 /**
- * Patch a JSONRpcProvider so it uses the browser's native fetch()
- * instead of the undici-based fetcher that breaks in browsers.
+ * Patch a JSONRpcProvider to bypass the broken undici-based fetcher.
+ * Overrides _send() entirely with a clean native fetch() implementation.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function patchProviderForBrowser(provider: any): void {
-  provider._fetcherWithCleanup = {
-    fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
-    close: async () => {},
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  provider._send = async (payload: any) => {
+    const url: string = provider.url;
+    const controller = new AbortController();
+    const timeout = provider.timeout ?? 20000;
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      if (!resp.ok) {
+        const body = await resp.text().catch(() => '');
+        throw new Error(`RPC HTTP ${resp.status}: ${body.slice(0, 200)}`);
+      }
+
+      const data = await resp.json();
+      return [data];
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        throw new Error(`RPC timed out after ${timeout}ms`);
+      }
+      throw e;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   };
 }
 
