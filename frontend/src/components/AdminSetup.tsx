@@ -44,11 +44,15 @@ export default function AdminSetup() {
     const contractAddressObj = resolveContractAddress(contractAddr);
     const paramAddressObj = resolveContractAddress(paramAddr);
 
-    // Pass contract address as STRING so provider.call() serializes it correctly,
-    // but pre-populate _rlAddress cache so contractAddress getter skips the RPC.
+    // Use the wallet's provider (communicates from user's browser IP).
+    // The OP_NET regtest node blocks cloud IPs (Vercel/AWS) but allows browser requests.
+    // Patch _send to use native fetch() (the SDK's undici-based fetcher breaks in browsers).
     let result;
     try {
-      const rpc = getProvider();
+      const rpc = provider as AbstractRpcProvider;
+      patchProviderForBrowser(rpc);
+      // Pass contract address as STRING so provider.call() serializes it correctly,
+      // but pre-populate _rlAddress cache so contractAddress getter skips btc_publicKeyInfo RPC.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const contract = getContract(contractAddr, abi, rpc, network as Network, undefined as any) as any;
       contract._rlAddress = Promise.resolve(contractAddressObj);
