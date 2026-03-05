@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion';
-import { Shield, Zap } from 'lucide-react';
+import { Shield, Zap, Wallet, LogOut } from 'lucide-react';
+import { useAegisWallet } from '../context/WalletContext';
 
 export default function Header() {
+  const { address, isConnected, isConnecting, connect, disconnect, isLiveData } = useAegisWallet();
+
   return (
     <header className="flex items-center justify-between py-4">
       {/* Logo + Title */}
@@ -34,16 +37,58 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Status Badge */}
+      {/* Right side: Status Badge + Wallet */}
       <div className="flex items-center gap-2">
+        {/* LIVE / DEMO Badge */}
         <motion.div
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20"
-          animate={{ boxShadow: ['0 0 10px rgba(34,197,94,0.2)', '0 0 20px rgba(34,197,94,0.4)', '0 0 10px rgba(34,197,94,0.2)'] }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${
+            isLiveData
+              ? 'bg-emerald-500/10 border-emerald-500/20'
+              : 'bg-orange-500/10 border-orange-500/20'
+          }`}
+          animate={{
+            boxShadow: isLiveData
+              ? ['0 0 10px rgba(34,197,94,0.2)', '0 0 20px rgba(34,197,94,0.4)', '0 0 10px rgba(34,197,94,0.2)']
+              : ['0 0 10px rgba(249,115,22,0.2)', '0 0 20px rgba(249,115,22,0.4)', '0 0 10px rgba(249,115,22,0.2)'],
+          }}
           transition={{ duration: 3, repeat: Infinity }}
         >
-          <Zap size={12} className="text-emerald-400" />
-          <span className="text-xs font-mono-data text-emerald-400">LIVE</span>
+          <Zap size={12} className={isLiveData ? 'text-emerald-400' : 'text-orange-400'} />
+          <span className={`text-xs font-mono-data ${isLiveData ? 'text-emerald-400' : 'text-orange-400'}`}>
+            {isLiveData ? 'LIVE' : 'DEMO'}
+          </span>
         </motion.div>
+
+        {/* Connect / Disconnect Wallet */}
+        {isConnected && address ? (
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <Wallet size={12} className="text-emerald-400" />
+              <span className="text-xs font-mono-data text-emerald-400">
+                {address.slice(0, 6)}...{address.slice(-4)}
+              </span>
+            </div>
+            <button
+              onClick={disconnect}
+              className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+              title="Disconnect wallet"
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+        ) : (
+          <motion.button
+            onClick={connect}
+            disabled={isConnecting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer disabled:opacity-50"
+            whileTap={{ scale: 0.97 }}
+          >
+            <Wallet size={12} />
+            <span className="text-xs font-mono-data">
+              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+            </span>
+          </motion.button>
+        )}
       </div>
     </header>
   );

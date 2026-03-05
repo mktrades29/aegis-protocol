@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, Filter } from 'lucide-react';
-import { MOCK_LOCKS } from '../mock/data';
+import { Search, SlidersHorizontal, Filter, AlertTriangle } from 'lucide-react';
+import { useAegisWallet } from '../context/WalletContext';
 import VestingCard from './VestingCard';
 
 type FilterMode = 'all' | 'active' | 'completed';
@@ -13,11 +13,12 @@ type FilterMode = 'all' | 'active' | 'completed';
  * filter toggles, and renders VestingCard for each result.
  */
 export default function VestingExplorer() {
+  const { locks, isLoadingData, dataError } = useAegisWallet();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterMode>('all');
 
   const filteredLocks = useMemo(() => {
-    let results = MOCK_LOCKS;
+    let results = locks;
 
     // Filter by status
     if (filter === 'active') results = results.filter(l => l.isActive);
@@ -35,10 +36,24 @@ export default function VestingExplorer() {
     }
 
     return results;
-  }, [search, filter]);
+  }, [search, filter, locks]);
 
   return (
     <div>
+      {/* ── Error Banner ─────────────────────────────────────────── */}
+      {dataError && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-orange-500/5 border border-orange-500/10"
+        >
+          <AlertTriangle size={14} className="text-orange-400 shrink-0" />
+          <p className="text-xs font-mono-data text-orange-400">
+            {dataError} — Showing demo data
+          </p>
+        </motion.div>
+      )}
+
       {/* ── Search Bar ──────────────────────────────────────────── */}
       <motion.div
         className="glass-card-strong p-1.5 mb-6"
@@ -90,8 +105,35 @@ export default function VestingExplorer() {
         </span>
       </div>
 
-      {/* ── Cards Grid ──────────────────────────────────────────── */}
-      {filteredLocks.length > 0 ? (
+      {/* ── Loading Skeleton ──────────────────────────────────────── */}
+      {isLoadingData ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className="glass-card p-6"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-white/[0.04] animate-pulse" />
+                <div className="space-y-2 flex-1">
+                  <div className="w-24 h-3 rounded bg-white/[0.04] animate-pulse" />
+                  <div className="w-16 h-2 rounded bg-white/[0.04] animate-pulse" />
+                </div>
+              </div>
+              <div className="w-full h-32 rounded-xl bg-white/[0.04] animate-pulse mb-4" />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="h-12 rounded-lg bg-white/[0.04] animate-pulse" />
+                <div className="h-12 rounded-lg bg-white/[0.04] animate-pulse" />
+                <div className="h-12 rounded-lg bg-white/[0.04] animate-pulse" />
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      ) : filteredLocks.length > 0 ? (
+        /* ── Cards Grid ──────────────────────────────────────────── */
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filteredLocks.map((lock, i) => (
             <VestingCard key={lock.lockId} lock={lock} index={i} />

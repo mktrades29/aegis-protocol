@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, Layers, Coins, TrendingUp } from 'lucide-react';
-import { MOCK_STATS } from '../mock/data';
+import { useAegisWallet } from '../context/WalletContext';
 
 /**
  * AnimatedCounter — Numbers visibly count up from 0.
@@ -42,45 +42,70 @@ function AnimatedCounter({ target, duration = 2000, prefix = '', suffix = '' }: 
   );
 }
 
-const stats = [
-  {
-    label: 'Total Value Locked',
-    value: MOCK_STATS.totalValueLocked,
-    icon: Lock,
-    color: 'emerald',
-    prefix: '',
-    suffix: '',
-  },
-  {
-    label: 'Active Locks',
-    value: MOCK_STATS.totalLocks,
-    icon: Layers,
-    color: 'emerald',
-    prefix: '',
-    suffix: '',
-  },
-  {
-    label: 'Tokens Tracked',
-    value: MOCK_STATS.totalTokensTracked,
-    icon: TrendingUp,
-    color: 'emerald',
-    prefix: '',
-    suffix: '',
-  },
-  {
-    label: 'Vault Fees Collected',
-    value: MOCK_STATS.vaultFeesCollected,
-    icon: Coins,
-    color: 'orange',
-    prefix: '',
-    suffix: '',
-  },
-];
-
 export default function StatsBar() {
+  const { stats, isLoadingData } = useAegisWallet();
+
+  const statItems = [
+    {
+      label: 'Total Value Locked',
+      value: stats.totalValueLocked,
+      icon: Lock,
+      color: 'emerald',
+      prefix: '',
+      suffix: '',
+    },
+    {
+      label: 'Active Locks',
+      value: stats.totalLocks,
+      icon: Layers,
+      color: 'emerald',
+      prefix: '',
+      suffix: '',
+    },
+    {
+      label: 'Tokens Tracked',
+      value: stats.totalTokensTracked,
+      icon: TrendingUp,
+      color: 'emerald',
+      prefix: '',
+      suffix: '',
+    },
+    {
+      label: 'Vault Fees Collected',
+      value: stats.vaultFeesCollected,
+      icon: Coins,
+      color: 'orange',
+      prefix: '',
+      suffix: '',
+    },
+  ];
+
+  // Loading skeleton
+  if (isLoadingData) {
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+        {[0, 1, 2, 3].map((i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.4 + i * 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="glass-card p-4"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 rounded-lg bg-white/[0.04] animate-pulse" />
+              <div className="w-20 h-2 rounded bg-white/[0.04] animate-pulse" />
+            </div>
+            <div className="w-24 h-6 rounded bg-white/[0.04] animate-pulse" />
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
-      {stats.map((stat, i) => (
+      {statItems.map((stat, i) => (
         <motion.div
           key={stat.label}
           initial={{ opacity: 0, y: 20, scale: 0.95 }}

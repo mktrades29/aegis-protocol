@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Rocket, ChevronRight, Check, Lock, Clock, Zap, AlertTriangle } from 'lucide-react';
+import { Rocket, ChevronRight, Check, Lock, Clock, Zap, AlertTriangle, Wallet } from 'lucide-react';
+import { useAegisWallet } from '../context/WalletContext';
+import { useCreateLock } from '../hooks/useCreateLock';
 
 type Step = 1 | 2 | 3;
 
@@ -19,13 +21,15 @@ const DURATION_OPTIONS = [
  * Step 3: Review & Execute Lock
  */
 export default function VaultCreator() {
+  const { isConnected, connect } = useAegisWallet();
+  const { execute, isExecuting, error: txError, txId } = useCreateLock();
+
   const [step, setStep] = useState<Step>(1);
   const [tokenAddress, setTokenAddress] = useState('');
   const [beneficiary, setBeneficiary] = useState('');
   const [amount, setAmount] = useState('');
   const [selectedDuration, setSelectedDuration] = useState(180);
   const [vestingMode, setVestingMode] = useState<'LINEAR' | 'CLIFF'>('LINEAR');
-  const [isExecuting, setIsExecuting] = useState(false);
   const [isDone, setIsDone] = useState(false);
 
   const canProceedStep1 = tokenAddress.length > 10;
@@ -33,13 +37,18 @@ export default function VaultCreator() {
   const feeAmount = Number(amount) * 0.01;
   const netAmount = Number(amount) - feeAmount;
 
-  function handleExecute() {
-    setIsExecuting(true);
-    // Simulate transaction
-    setTimeout(() => {
-      setIsExecuting(false);
+  async function handleExecute() {
+    const result = await execute({
+      tokenAddress,
+      beneficiary,
+      amount: BigInt(Math.floor(Number(amount))),
+      durationDays: selectedDuration,
+      vestingMode,
+    });
+
+    if (result) {
       setIsDone(true);
-    }, 2500);
+    }
   }
 
   function handleReset() {
@@ -297,6 +306,14 @@ export default function VaultCreator() {
                   <SummaryRow label="Net Lock Amount" value={netAmount.toLocaleString()} highlight />
                 </div>
 
+                {/* Transaction error */}
+                {txError && (
+                  <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-red-500/5 border border-red-500/10">
+                    <AlertTriangle size={14} className="text-red-400" />
+                    <p className="text-xs font-mono-data text-red-400">{txError}</p>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <button
                     onClick={() => setStep(2)}
@@ -304,33 +321,49 @@ export default function VaultCreator() {
                   >
                     Back
                   </button>
-                  <motion.button
-                    onClick={handleExecute}
-                    disabled={isExecuting}
-                    className="
-                      btn-neon flex-1 flex items-center justify-center gap-2 py-3 rounded-xl
-                      text-sm font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30
-                      hover:bg-emerald-500/30 transition-all duration-300 cursor-pointer
-                      disabled:opacity-50 disabled:cursor-not-allowed
-                    "
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    {isExecuting ? (
-                      <>
-                        <motion.div
-                          className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full"
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        />
-                        Executing...
-                      </>
-                    ) : (
-                      <>
-                        <Rocket size={14} />
-                        Execute Lock
-                      </>
-                    )}
-                  </motion.button>
+
+                  {isConnected ? (
+                    <motion.button
+                      onClick={handleExecute}
+                      disabled={isExecuting}
+                      className="
+                        btn-neon flex-1 flex items-center justify-center gap-2 py-3 rounded-xl
+                        text-sm font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30
+                        hover:bg-emerald-500/30 transition-all duration-300 cursor-pointer
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                      "
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {isExecuting ? (
+                        <>
+                          <motion.div
+                            className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          />
+                          Executing...
+                        </>
+                      ) : (
+                        <>
+                          <Rocket size={14} />
+                          Execute Lock
+                        </>
+                      )}
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      onClick={connect}
+                      className="
+                        btn-neon flex-1 flex items-center justify-center gap-2 py-3 rounded-xl
+                        text-sm font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30
+                        hover:bg-emerald-500/30 transition-all duration-300 cursor-pointer
+                      "
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Wallet size={14} />
+                      Connect Wallet
+                    </motion.button>
+                  )}
                 </div>
               </div>
             )}
@@ -352,9 +385,15 @@ export default function VaultCreator() {
               <Check size={28} className="text-emerald-400" />
             </motion.div>
             <h3 className="text-lg font-bold text-white mb-1">Lock Created Successfully</h3>
-            <p className="text-sm text-zinc-500 font-mono-data mb-6">
+            <p className="text-sm text-zinc-500 font-mono-data mb-2">
               {netAmount.toLocaleString()} tokens locked for {selectedDuration} days
             </p>
+            {txId && (
+              <p className="text-xs text-zinc-600 font-mono-data mb-6 break-all">
+                TX: {txId}
+              </p>
+            )}
+            {!txId && <div className="mb-6" />}
             <button
               onClick={handleReset}
               className="px-6 py-2.5 rounded-xl text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"
