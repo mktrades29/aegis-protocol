@@ -1,13 +1,55 @@
 import { useState } from 'react';
 import { Settings, Link, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { getContract, type AbstractRpcProvider } from 'opnet';
+import { Address } from '@btc-vision/transaction';
 import type { Network } from '@btc-vision/bitcoin';
 import { useAegisWallet } from '../context/WalletContext';
 import { config } from '../config/env';
-import { getProvider } from '../services/provider';
 import { AEGIS_VESTING_ABI, AEGIS_VAULT_ABI } from '../config/abis';
 
 type StepStatus = 'idle' | 'loading' | 'success' | 'error';
+
+/**
+ * Resolve a P2OP address to an Address object via direct fetch to the RPC.
+ * Bypasses the opnet SDK's fetch infrastructure which breaks in browsers.
+ */
+async function resolveP2OPAddress(p2opAddr: string): Promise<Address> {
+  const rpcUrl = config.rpcUrl.endsWith('/') ? config.rpcUrl.slice(0, -1) : config.rpcUrl;
+  const url = rpcUrl.includes('api/v1/json-rpc') ? rpcUrl : `${rpcUrl}/api/v1/json-rpc`;
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      method: 'btc_publicKeyInfo',
+      params: [[p2opAddr]],
+      id: 1,
+    }),
+  });
+
+  if (!resp.ok) {
+    throw new Error(`RPC error: ${resp.status} ${resp.statusText}`);
+  }
+
+  const data = await resp.json();
+  if (data.error) {
+    throw new Error(data.error.message || 'RPC error');
+  }
+
+  const info = data.result?.[p2opAddr];
+  if (!info || info.error) {
+    throw new Error(`Address not found on network: ${p2opAddr}`);
+  }
+
+  // Use tweakedPubkey for contract addresses (no MLDSA key for contracts)
+  const pubkey = info.mldsaHashedPublicKey ?? info.tweakedPubkey;
+  if (!pubkey) {
+    throw new Error(`No public key returned for: ${p2opAddr}`);
+  }
+
+  return Address.fromString(pubkey, info.tweakedPubkey);
+}
 
 export default function AdminSetup() {
   const { isConnected, address, provider, signer, network } = useAegisWallet();
@@ -24,13 +66,8 @@ export default function AdminSetup() {
     const rpc = provider as AbstractRpcProvider;
     const contract = getContract(contractAddr, abi, rpc, network as Network, address as any);
 
-    // Resolve P2OP bech32m string to an Address object (the SDK requires Address, not string).
-    // Use the singleton JSONRpcProvider which has reliable RPC connectivity.
-    const rpcProvider = getProvider();
-    const resolvedAddress = await rpcProvider.getPublicKeyInfo(paramAddr, true);
-    if (!resolvedAddress) {
-      throw new Error(`Could not resolve address: ${paramAddr}`);
-    }
+    // Resolve P2OP bech32m string to Address object via direct fetch (bypasses SDK fetcher)
+    const resolvedAddress = await resolveP2OPAddress(paramAddr);
 
     const result = await (contract as any)[methodName](resolvedAddress);
 
