@@ -2,5 +2,8 @@
   "buildCommand": "cd frontend && npm install --legacy-peer-deps && npm run build",
   "outputDirectory": "frontend/dist",
   "installCommand": "echo 'skip'",
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    { "source": "/api/v1/json-rpc", "destination": "https://regtest.opnet.org/api/v1/json-rpc" }
+  ]
 }

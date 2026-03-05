@@ -3,7 +3,8 @@
  * Reads from Vite's import.meta.env at build time.
  */
 export const config = {
-  rpcUrl: import.meta.env.VITE_OPNET_RPC_URL as string || 'https://regtest.opnet.org',
+  /** Empty string = same-origin proxy (Vercel rewrite / Vite dev proxy to regtest.opnet.org) */
+  rpcUrl: '',
   network: import.meta.env.VITE_NETWORK as string || 'regtest',
   aegisVestingAddress: import.meta.env.VITE_AEGIS_VESTING_ADDRESS as string || '',
   aegisVaultAddress: import.meta.env.VITE_AEGIS_VAULT_ADDRESS as string || '',
