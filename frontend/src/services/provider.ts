@@ -45,8 +45,7 @@ export function patchProviderForBrowser(provider: any): void {
         const isHtml = respBody.trimStart().startsWith('<');
         const detail = isHtml ? `(Cloudflare error page)` : respBody.slice(0, 200);
         // Include truncated request body so we can debug what the SDK sends
-        const reqPreview = bodyStr.length > 300 ? bodyStr.slice(0, 300) + '...' : bodyStr;
-        throw new Error(`RPC[${method}] HTTP ${resp.status} ${detail} | sent: ${reqPreview}`);
+        throw new Error(`RPC[${method}] HTTP ${resp.status} ${detail} | url: ${url}`);
       }
 
       const data = await resp.json();
