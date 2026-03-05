@@ -23,6 +23,7 @@ export function patchProviderForBrowser(provider: any): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   provider._send = async (payload: any) => {
     const url: string = provider.url;
+    const method = payload?.method ?? 'unknown';
     const controller = new AbortController();
     const timeout = provider.timeout ?? 20000;
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -40,14 +41,14 @@ export function patchProviderForBrowser(provider: any): void {
 
       if (!resp.ok) {
         const body = await resp.text().catch(() => '');
-        throw new Error(`RPC HTTP ${resp.status}: ${body.slice(0, 200)}`);
+        throw new Error(`RPC[${method}] HTTP ${resp.status}: ${body.slice(0, 200)}`);
       }
 
       const data = await resp.json();
       return [data];
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'AbortError') {
-        throw new Error(`RPC timed out after ${timeout}ms`);
+        throw new Error(`RPC[${method}] timed out after ${timeout}ms`);
       }
       throw e;
     } finally {
