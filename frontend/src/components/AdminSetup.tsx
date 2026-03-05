@@ -20,8 +20,16 @@ export default function AdminSetup() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function sendAdminTx(contractAddr: string, abi: any, methodName: string, paramAddr: string): Promise<void> {
-    const contract = getContract(contractAddr, abi, provider as AbstractRpcProvider, network as Network, address as any);
-    const result = await (contract as any)[methodName](paramAddr);
+    const rpc = provider as AbstractRpcProvider;
+    const contract = getContract(contractAddr, abi, rpc, network as Network, address as any);
+
+    // Resolve P2OP bech32m string to an Address object (the SDK requires Address, not string)
+    const resolvedAddress = await rpc.getPublicKeyInfo(paramAddr, true);
+    if (!resolvedAddress) {
+      throw new Error(`Could not resolve address: ${paramAddr}`);
+    }
+
+    const result = await (contract as any)[methodName](resolvedAddress);
 
     if (result.revert) {
       throw new Error(result.revert);
