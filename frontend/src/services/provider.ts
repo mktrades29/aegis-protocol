@@ -28,6 +28,7 @@ export function patchProviderForBrowser(provider: any): void {
     const timeout = provider.timeout ?? 20000;
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+    const bodyStr = JSON.stringify(payload);
     try {
       const resp = await fetch(url, {
         method: 'POST',
@@ -35,13 +36,17 @@ export function patchProviderForBrowser(provider: any): void {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: bodyStr,
         signal: controller.signal,
       });
 
       if (!resp.ok) {
-        const body = await resp.text().catch(() => '');
-        throw new Error(`RPC[${method}] HTTP ${resp.status}: ${body.slice(0, 200)}`);
+        const respBody = await resp.text().catch(() => '');
+        const isHtml = respBody.trimStart().startsWith('<');
+        const detail = isHtml ? `(Cloudflare error page)` : respBody.slice(0, 200);
+        // Include truncated request body so we can debug what the SDK sends
+        const reqPreview = bodyStr.length > 300 ? bodyStr.slice(0, 300) + '...' : bodyStr;
+        throw new Error(`RPC[${method}] HTTP ${resp.status} ${detail} | sent: ${reqPreview}`);
       }
 
       const data = await resp.json();
