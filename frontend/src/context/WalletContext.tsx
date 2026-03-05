@@ -12,7 +12,7 @@ import type { AbstractRpcProvider } from 'opnet';
 import type { VestingLock, ProtocolStats } from '../mock/data';
 import { MOCK_LOCKS, MOCK_STATS } from '../mock/data';
 import { isConfigured } from '../config/env';
-import { getProvider, getNetwork, patchProviderForBrowser } from '../services/provider';
+import { getProvider, getNetwork } from '../services/provider';
 import { fetchAllLocks, fetchProtocolStats } from '../services/vestingService';
 import type { OnChainLockInfo } from '../types/contracts';
 
@@ -72,8 +72,10 @@ export function AegisWalletProvider({ children }: { children: ReactNode }) {
   const canFetchLive = isConnected && isConfigured();
 
   const fetchLiveData = useCallback(async () => {
+    // Use the wallet's own provider when available (communicates through OP_WALLET
+    // extension transport). Only fall back to the patched singleton for read-only
+    // calls when no wallet is connected.
     const provider = wallet.provider ?? getProvider();
-    patchProviderForBrowser(provider);
     const network = wallet.network ?? getNetwork();
 
     setIsLoadingData(true);

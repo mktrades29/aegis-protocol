@@ -5,7 +5,7 @@ import { Address } from '@btc-vision/transaction';
 import type { Network } from '@btc-vision/bitcoin';
 import { useAegisWallet } from '../context/WalletContext';
 import { config } from '../config/env';
-import { patchProviderForBrowser, getProvider } from '../services/provider';
+import { getProvider } from '../services/provider';
 import { AEGIS_VESTING_ABI, AEGIS_VAULT_ABI } from '../config/abis';
 
 type StepStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -44,13 +44,11 @@ export default function AdminSetup() {
     const contractAddressObj = resolveContractAddress(contractAddr);
     const paramAddressObj = resolveContractAddress(paramAddr);
 
-    // Use the wallet's provider (communicates from user's browser IP).
-    // The OP_NET regtest node blocks cloud IPs (Vercel/AWS) but allows browser requests.
-    // Patch _send to use native fetch() (the SDK's undici-based fetcher breaks in browsers).
+    // Use the wallet's provider WITHOUT patching — it likely communicates through
+    // the OP_WALLET extension (not HTTP fetch), so patching _send would break it.
     let result;
     try {
       const rpc = provider as AbstractRpcProvider;
-      patchProviderForBrowser(rpc);
       // Pass contract address as STRING so provider.call() serializes it correctly,
       // but pre-populate _rlAddress cache so contractAddress getter skips btc_publicKeyInfo RPC.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
