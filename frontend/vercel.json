@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/api/v1/json-rpc", "destination": "https://regtest.opnet.org/api/v1/json-rpc" }
+  ]
+}
