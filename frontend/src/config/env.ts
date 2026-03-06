@@ -5,7 +5,7 @@
 export const config = {
   /** Empty string = same-origin proxy (Vercel rewrite / Vite dev proxy) */
   rpcUrl: '',
-  network: import.meta.env.VITE_NETWORK as string || 'regtest',
+  network: import.meta.env.VITE_NETWORK as string || 'testnet',
   aegisVestingAddress: import.meta.env.VITE_AEGIS_VESTING_ADDRESS as string || '',
   aegisVaultAddress: import.meta.env.VITE_AEGIS_VAULT_ADDRESS as string || '',
 };
