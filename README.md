@@ -141,7 +141,7 @@ Built with **React + TypeScript + Vite + Tailwind CSS**.
 | Blockchain SDK | `opnet` + `@btc-vision/transaction` |
 | Wallet | `@btc-vision/walletconnect` (OP_WALLET) |
 | Deployment | Vercel |
-| Network | OP_NET Bitcoin L1 (regtest) |
+| Network | OP_NET Bitcoin L1 (testnet) |
 
 ---
 
@@ -185,7 +185,7 @@ Aegis Protocol is designed for production deployment on Bitcoin mainnet via OP_N
 - **Per-token accounting** — Fee ledger tracks every token independently for transparent governance
 - **Standard SDK integration** — Uses official OP_NET SDK and wallet infrastructure
 
-The transition from regtest to mainnet requires only updating the RPC endpoint and redeploying contracts — no code changes needed.
+The transition from testnet to mainnet requires only updating the RPC endpoint and redeploying contracts — no code changes needed.
 
 ---
 
@@ -217,6 +217,17 @@ aegis-protocol/
 │   └── api/                     # Vercel serverless proxy
 └── README.md
 ```
+
+---
+
+## Deployed Contracts (OPNet Testnet)
+
+| Contract | Address |
+|----------|---------|
+| **AegisVesting** | `opt1sqprw646ty7hjpnh3zne5yrqppv7ztp5f2sjnaevw` |
+| **AegisVault** | `opt1sqrpf9gu5mpjd45jucwsgpuwsj5lszlmu0q5m6ykg` |
+
+Network: OPNet Testnet (`https://testnet.opnet.org`)
 
 ---
 
